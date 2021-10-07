@@ -33,7 +33,7 @@ causes <- mortality_tbl_long %>%
 
 
 # UI
-ui <- navbarPage("Global Mortality Data Visulization Shiny App",
+ui <- navbarPage("Global Mortality App",
     
     theme = shinytheme("sandstone"),
 
@@ -74,13 +74,54 @@ ui <- navbarPage("Global Mortality Data Visulization Shiny App",
                offset = 0,
                
                # small multiples plot
-               plotOutput("small_multiples", width = "800px", height = "500px")
+               plotOutput("small_multiples", width = "800px", height = "660px")
                
         )
     )
 ),
 
-    tabPanel("Tab 2"),
+    tabPanel("Between countries vs. rest of the world by cause",
+             # Application title
+             
+             # Sidebar with numeric entry panels
+             fluidRow(
+                 
+                 # first column
+                 column(5,
+                        hr(),
+                        sidebarPanel(width = 6,
+                                     
+                                     selectInput(inputId = "1",
+                                                 label      = "Select countries", 
+                                                 choices    = countries, 
+                                                 selected   = c("United States", "Canada", "Hungary", "Italy", "Japan", "China"), 
+                                                 multiple   = TRUE, 
+                                                 selectize  = FALSE,
+                                                 size = 30)
+                        ),
+                        
+                        sidebarPanel(width = 6,
+                                     
+                                     selectInput(inputId    = "2",
+                                                 label      = "Select cause", 
+                                                 choices    = causes, 
+                                                 selected   = "Cancers", 
+                                                 multiple   = FALSE, 
+                                                 selectize  = FALSE,
+                                                 size = 30)
+                        )
+                 ),
+                 
+                 # second column
+                 column(6, 
+                        offset = 0,
+                        
+                        # small multiples plot
+                        plotOutput("plot_output_here", width = "800px", height = "500px")
+                        
+                 )
+             )
+    ),
 
     tabPanel("Tab 3")
 )
