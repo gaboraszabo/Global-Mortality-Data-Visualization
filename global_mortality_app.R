@@ -199,7 +199,7 @@ server <- function(input, output) {
                 subtitle = "Between-country comparisons", 
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
-            theme(plot.title = element_text(size = 20, face = "bold"),
+            theme(plot.title    = element_text(size = 20, face = "bold"),
                   plot.subtitle = element_text(size = 15)) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015))
         
@@ -236,12 +236,15 @@ server <- function(input, output) {
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank()) +
             labs(
-                title    = "Comparison Between Countries vs. Rest of The World by Cause", 
+                title    = "Comparison Between Countries vs. Rest of The World by Cause",
+                subtitle = input$cause_2,
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
-            theme(plot.title = element_text(size = 20, face = "bold")) +
+            theme(
+                plot.title    = element_text(size = 20, face = "bold"),
+                plot.subtitle = element_text(size = 15, face = "bold")) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
-            scale_color_viridis_d()  
+            scale_color_viridis_d()
         
     }
     
@@ -268,9 +271,18 @@ server <- function(input, output) {
             gghighlight(cause %in% cause_of_death,
                         unhighlighted_params = list(size = 1, colour = alpha("grey", 0.2))) +
             
-            theme_light() +
+            theme_tq() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank()) +
+            labs(
+                title    = "Comparison Between Selected Causes vs. The Rest of The Causes by Country",
+                subtitle = input$country_3,
+                x        = "Year", 
+                y        = "Proportion (% of overall deaths)") +
+            theme(
+                plot.title    = element_text(size = 20, face = "bold"),
+                plot.subtitle = element_text(size = 15, face = "bold")) +
+            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
             
             scale_color_viridis_d()
         
