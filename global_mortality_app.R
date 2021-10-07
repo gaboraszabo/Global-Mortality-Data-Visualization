@@ -5,6 +5,7 @@ library(writexl)
 library(openxlsx)
 library(shinythemes)
 library(tidyquant)
+library(gghighlight)
 
 mortality_tbl <- read_excel("C:/Users/gabor_szabo/OneDrive - Edwards Lifesciences/Documents/R/UseR group contest/global_mortality.xlsx")
 
@@ -36,11 +37,11 @@ causes <- mortality_tbl_long %>%
 ui <- navbarPage("Global Mortality App",
     
     theme = shinytheme("sandstone"),
-
+    
+    # Tab 1 ----
     tabPanel("Between countries by cause",
     # Application title
 
-    # Sidebar with numeric entry panels
     fluidRow(
         
         # first column
@@ -80,10 +81,10 @@ ui <- navbarPage("Global Mortality App",
     )
 ),
 
+    # Tab 2 ----
     tabPanel("Between countries vs. rest of the world by cause",
              # Application title
              
-             # Sidebar with numeric entry panels
              fluidRow(
                  
                  # first column
@@ -91,7 +92,7 @@ ui <- navbarPage("Global Mortality App",
                         hr(),
                         sidebarPanel(width = 6,
                                      
-                                     selectInput(inputId = "1",
+                                     selectInput(inputId = "country_2",
                                                  label      = "Select countries", 
                                                  choices    = countries, 
                                                  selected   = c("United States", "Canada", "Hungary", "Italy", "Japan", "China"), 
@@ -102,7 +103,7 @@ ui <- navbarPage("Global Mortality App",
                         
                         sidebarPanel(width = 6,
                                      
-                                     selectInput(inputId    = "2",
+                                     selectInput(inputId    = "cause_2",
                                                  label      = "Select cause", 
                                                  choices    = causes, 
                                                  selected   = "Cancers", 
@@ -116,21 +117,63 @@ ui <- navbarPage("Global Mortality App",
                  column(6, 
                         offset = 0,
                         
-                        # small multiples plot
-                        plotOutput("plot_output_here", width = "800px", height = "500px")
+                        # plot
+                        plotOutput("btw_countries_by_cause", width = "800px", height = "500px")
                         
                  )
              )
     ),
 
-    tabPanel("Tab 3")
+
+    # Tab 3 ----
+    tabPanel("Between causes vs. rest of the causes by country",
+             # Application title
+             
+             fluidRow(
+                 
+                 # first column
+                 column(5,
+                        hr(),
+                        sidebarPanel(width = 6,
+                                     
+                                     selectInput(inputId = "country_3",
+                                                 label      = "Select country", 
+                                                 choices    = countries, 
+                                                 selected   = c("United States", "Canada", "Hungary", "Italy", "Japan", "China"), 
+                                                 multiple   = FALSE, 
+                                                 selectize  = FALSE,
+                                                 size = 30)
+                        ),
+                        
+                        sidebarPanel(width = 6,
+                                     
+                                     selectInput(inputId    = "cause_3",
+                                                 label      = "Select causes", 
+                                                 choices    = causes, 
+                                                 selected   = c("Cardiovascular diseases", "Cancers"), 
+                                                 multiple   = TRUE, 
+                                                 selectize  = FALSE,
+                                                 size = 30)
+                        )
+                 ),
+                 
+                 # second column
+                 column(6, 
+                        offset = 0,
+                        
+                        # plot
+                        plotOutput("btw_cause_by_country", width = "800px", height = "500px")
+                        
+                 )
+             )
+    )
 )
 
 # SERVER
 server <- function(input, output) {
     
 
-    
+# Small multiples function and plot ----    
     create_small_multiples <- function(countries, cause_of_death) {
         
         mortality_tbl_long %>% 
@@ -157,24 +200,12 @@ server <- function(input, output) {
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
             theme(plot.title = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15))
+                  plot.subtitle = element_text(size = 15)) +
+            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015))
         
     }
     
-    
-    
-    # reactive function - CAN DELETE
-    selected_countries <- reactive({
-        
-        req(input$countries)
-        
-        selected_countries <- input$countries
-        
-    })
-        
-        
-        
-    
+
     output$small_multiples <- renderPlot({
         
         
@@ -182,11 +213,96 @@ server <- function(input, output) {
         
         
     })
-    
-    }
+ 
 
     
     
+# Between countries vs. rest of the world function and plot ----
+    
+    create_btw_country_by_cause <- function(countries, cause_of_death) {
+        
+        mortality_tbl_long %>% 
+            
+            filter(cause == cause_of_death) %>% 
+            
+            
+            ggplot(aes(x = year, y = proportion, color = country)) +
+            
+            geom_line() +
+            gghighlight(country %in% countries,
+                        unhighlighted_params = list(size = 1, colour = alpha("lightgrey", 0.18))) +
+            
+            theme_tq() +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank()) +
+            labs(
+                title    = "Comparison Between Countries vs. Rest of The World by Cause", 
+                x        = "Year", 
+                y        = "Proportion (% of overall deaths)") +
+            theme(plot.title = element_text(size = 20, face = "bold")) +
+            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
+            scale_color_viridis_d()  
+        
+    }
+    
+    output$btw_countries_by_cause <- renderPlot({
+        
+        
+        create_btw_country_by_cause(input$country_2, input$cause_2)
+        
+        
+    })
+    
+   
+# Between selected causes vs. rest of causes by country function and plot ----   
+    
+    create_btw_cause_by_country <- function(cause_of_death, ctr) {
+        
+        mortality_tbl_long %>% 
+            
+            filter(country == ctr) %>% 
+            
+            ggplot(aes(x = year, y = proportion)) +
+            
+            geom_line(aes(group = cause, color = cause)) +
+            gghighlight(cause %in% cause_of_death,
+                        unhighlighted_params = list(size = 1, colour = alpha("grey", 0.2))) +
+            
+            theme_light() +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank()) +
+            
+            scale_color_viridis_d()
+        
+    }
+    
+    
+     
+    output$btw_cause_by_country <- renderPlot({
+        
+        
+        create_btw_cause_by_country(input$cause_3, input$country_3)
+    
+    })
+    
+    
+    
+    
+       
+    }
+
+    
+
+
+# reactive function - CAN DELETE
+selected_countries <- reactive({
+    
+    req(input$countries)
+    
+    selected_countries <- input$countries
+    
+})
+  
     
 
 
