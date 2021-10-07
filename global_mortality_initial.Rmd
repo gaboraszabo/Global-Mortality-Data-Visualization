@@ -1,0 +1,253 @@
+---
+title: "UseR group data visualization contest"
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(gghighlight)
+```
+
+
+# LOAD DATASET
+```{r}
+mortality_tbl <- read_excel("global_mortality.xlsx")
+```
+
+
+```{r}
+mortality_tbl
+```
+
+# DATA WRANGLING
+# pivot_longer
+```{r}
+mortality_tbl_long <- mortality_tbl %>% 
+  
+  # pivot tibble to long format
+  pivot_longer(ends_with("(%)"), names_to = "cause", values_to = "proportion")
+
+mortality_tbl_long
+
+```
+
+
+# remove "(%)" from the end of the strings in the cause columns and trim strings to remove space at the end
+```{r}
+mortality_tbl_long <- mortality_tbl_long %>% 
+  mutate(cause = str_extract(mortality_tbl_long$cause, "[^(%)]+")) %>% 
+  mutate(cause = cause %>% str_trim())
+```
+
+
+
+
+
+# list causes
+```{r}
+mortality_tbl_long %>% 
+  
+  distinct(cause)
+```
+
+# list countries/regions
+```{r}
+mortality_tbl_long %>% 
+  
+  distinct(country)
+```
+
+
+
+
+
+
+# SELECTED CAUSES OF DEATH VS. THE REST OF DISEASES BY COUNTRY
+
+
+```{r}
+selection_cause <- c("Cancers")
+
+mortality_tbl_long %>% 
+  mutate(plot_color = case_when(cause %in% selection_cause ~ "green",
+                                TRUE ~ "lightgrey")
+         )
+  
+```
+
+
+```{r}
+mortality_tbl_long %>% 
+  
+  filter(country == "United States") %>% 
+  
+  ggplot(aes(x = year, y = proportion)) +
+  
+  geom_line(aes(group = cause, color = cause)) +
+  gghighlight(cause %in% selection_cause,
+              unhighlighted_params = list(size = 1, colour = alpha("grey", 0.2))) +
+  
+  theme_light() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  
+  scale_color_viridis_d()
+```
+
+
+# function for between causes comparison by country
+```{r}
+create_btw_cause_by_country <- function(cause_of_death, ctr) {
+  
+  mortality_tbl_long %>% 
+  
+  filter(country == ctr) %>% 
+  
+  ggplot(aes(x = year, y = proportion)) +
+  
+  geom_line(aes(group = cause, color = cause)) +
+  gghighlight(cause %in% cause_of_death,
+              unhighlighted_params = list(size = 1, colour = alpha("grey", 0.2))) +
+  
+  theme_light() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  
+  scale_color_viridis_d()
+  
+}
+```
+
+```{r}
+create_btw_cause_by_country(c("Cancers", "Road accidents", "Homicide", "Terrorism"), c("Hungary"))
+```
+
+
+
+
+
+
+
+# SELECTED COUNTRIES VS. REST OF THE WORLD BY CAUSE
+
+```{r}
+selection <- c("Hungary", "United States", "Peru", "France", "Slovakia", "Poland", "Bhutan")
+
+mortality_tbl_long_by_country <- mortality_tbl_long %>% 
+  mutate(plot_color = case_when(country %in% selection ~ "green",
+                                TRUE ~ "lightgrey")
+         )
+
+mortality_tbl_long_by_country
+
+```
+
+
+```{r}
+mortality_tbl_long %>% 
+  
+  filter(cause == "Diabetes") %>% 
+  
+  
+  ggplot(aes(x = year, y = proportion, color = country), size = 2) +
+  
+  geom_line() +
+  gghighlight(country %in% selection,
+              unhighlighted_params = list(size = 1, colour = alpha("lightgrey", 0.12))) +
+  
+  theme_light() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  
+  scale_color_viridis_d()
+```
+
+# function for between country comparison by cause
+```{r}
+create_btw_country_by_cause <- function(countries, cause_of_death) {
+  
+mortality_tbl_long %>% 
+  
+  filter(cause == cause_of_death) %>% 
+  
+  
+  ggplot(aes(x = year, y = proportion, color = country), size = 2) +
+  
+  geom_line() +
+  gghighlight(country %in% countries,
+              unhighlighted_params = list(size = 1, colour = alpha("lightgrey", 0.12))) +
+  
+  theme_light() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  
+  scale_color_viridis_d()  
+  
+  
+}
+
+
+```
+
+
+```{r}
+create_btw_country_by_cause(c("Hungary", "United States", "Canada", "Peru"), c("HIV/AIDS"))
+```
+
+
+
+
+
+# COMPARISON BETWEEN SELECTED COUNTRIES BY CAUSE - SMALL MULTIPLES
+
+
+
+# small multiples plot
+```{r}
+mortality_tbl_long %>% 
+  
+  filter(country %in% c("United States", "Hungary", "Germany", "Canada", "United Kingdom", "Croatia")) %>%
+  filter(cause == "Neonatal deaths") %>% 
+  
+  ggplot(aes(x = year, y = proportion)) +
+  
+  geom_line(aes(group = cause), color ="lightgrey", size = 0.8) +
+  
+  facet_wrap(~ country, nrow = 2) +
+  
+  theme_tq() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  coord_cartesian(ylim = c(0, NA))
+  
+```
+# function for small multiples plot
+```{r}
+create_small_multiples <- function(countries, cause_of_death) {
+  
+  mortality_tbl_long %>% 
+  
+  filter(country %in% countries) %>%
+  filter(cause == cause_of_death) %>% 
+  
+  ggplot(aes(x = year, y = proportion)) +
+  
+  geom_line(aes(group = cause), color ="lightgrey", size = 0.8) +
+  
+  facet_wrap(~ country, nrow = 2) +
+  
+  theme_tq() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  coord_cartesian(ylim = c(0, NA))
+  
+}
+```
+
+```{r}
+create_small_multiples(c("Hungary", "Spain", "Czech Republic", "United States", "Mexico", "Philippines", "Slovakia", "Poland"), "Neonatal deaths")
+```
+
