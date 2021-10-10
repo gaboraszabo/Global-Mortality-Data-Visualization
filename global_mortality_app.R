@@ -172,7 +172,16 @@ ui <- navbarPage("Global Mortality App",
                         offset = 0,
                         
                         # plot
-                        plotOutput("btw_cause_by_country", width = "800px", height = "500px")
+                        plotOutput("btw_cause_by_country",
+                                   width  = "800px",
+                                   height = "400px",
+                                   brush = brushOpts(id         = "btw_cause_by_country_brush",
+                                                     resetOnNew = TRUE
+                                                     )
+                        ),
+                        plotOutput("btw_cause_by_country_zoom",
+                                   width  = "800px",
+                                   height = "300px")
                         
                  )
              )
@@ -254,9 +263,9 @@ server <- function(input, output) {
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
                   axis.title       = element_text(color = "grey30"),
-                  plot.title    = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15, face = "bold"),
-                  plot.caption = element_text(color = "grey30", size = 12, hjust = 0.5)
+                  plot.title       = element_text(size = 20, face = "bold"),
+                  plot.subtitle    = element_text(size = 15, face = "bold"),
+                  plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
             ) +
             labs(
                 title    = "Comparison Between Countries vs. Rest of The World by Cause",
@@ -287,9 +296,7 @@ server <- function(input, output) {
             theme_light() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
-                  axis.title       = element_text(color = "grey30"),
-                  plot.title    = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15, face = "bold")
+                  axis.title       = element_text(color = "grey30")
             ) +
             labs(
                 x        = "Year", 
@@ -301,8 +308,6 @@ server <- function(input, output) {
             coord_cartesian(xlim = ranges2$x, ylim = ranges2$y, expand = FALSE)
         
     })
-    
-    #create_btw_country_by_cause(input$country_2, input$cause_2)
     
     
     # When a double-click happens, check if there's a brush on the plot.
@@ -327,46 +332,90 @@ server <- function(input, output) {
    
 # Between selected causes vs. rest of causes by country function and plot ----   
     
-    create_btw_cause_by_country <- function(cause_of_death, ctr) {
+
+    # range variable for secondary plot for zooming
+    ranges3 <- reactiveValues(x = NULL, y = NULL)   
+    
+    
+    
+    output$btw_cause_by_country <- renderPlot({
         
         mortality_tbl_long %>% 
             
-            filter(country == ctr) %>% 
+            filter(country == input$country_3) %>% 
             
             ggplot(aes(x = year, y = proportion)) +
             
             geom_line(aes(group = cause, color = cause)) +
-            gghighlight(cause %in% cause_of_death,
+            gghighlight(cause %in% input$cause_3,
                         unhighlighted_params = list(size = 1, colour = alpha("grey", 0.24))) +
             
             theme_light() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
                   axis.title       = element_text(color = "grey30"),
-                  plot.title    = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15, face = "bold")
-                  ) +
+                  plot.title       = element_text(size = 20, face = "bold"),
+                  plot.subtitle    = element_text(size = 15, face = "bold"),
+                  plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
+            ) +
             labs(
-                title    = "Comparison Between Selected Causes vs. The Rest of The Causes by Country",
+                title    = "Comparison Between Selected Causes vs. Rest of The Causes by Country",
                 subtitle = input$country_3,
                 x        = "Year", 
-                y        = "Proportion (% of overall deaths)") +
+                y        = "Proportion (% of overall deaths)",
+                caption  = "Select a specific part of the upper plot to zoom in on relevant details and have it displayed in the lower plot") +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
             scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
             scale_color_brewer(palette = "Dark2")
         
-    }
-    
-    
-     
-    output$btw_cause_by_country <- renderPlot({
-        
-        
-        create_btw_cause_by_country(input$cause_3, input$country_3)
-    
     })
     
+   
     
+    output$btw_cause_by_country_zoom <- renderPlot({
+        
+        mortality_tbl_long %>% 
+            
+            filter(country == input$country_3) %>% 
+            
+            ggplot(aes(x = year, y = proportion)) +
+            
+            geom_line(aes(group = cause, color = cause)) +
+            gghighlight(cause %in% input$cause_3,
+                        unhighlighted_params = list(size = 1, colour = alpha("grey", 0.24))) +
+            
+            theme_light() +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  axis.title       = element_text(color = "grey30")
+            ) +
+            labs(
+                x        = "Year", 
+                y        = "Proportion (% of overall deaths)"
+                ) +
+            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
+            scale_y_continuous(labels = scales::percent_format()) +
+            scale_color_brewer(palette = "Dark2") +
+            
+            coord_cartesian(xlim = ranges3$x, ylim = ranges3$y, expand = FALSE)
+        
+    }) 
+    
+    
+    # When a double-click happens, check if there's a brush on the plot.
+    # If so, zoom to the brush bounds; if not, reset the zoom.
+    observe({
+        brush <- input$btw_cause_by_country_brush
+        if (!is.null(brush)) {
+            ranges3$x <- c(brush$xmin, brush$xmax)
+            ranges3$y <- c(brush$ymin, brush$ymax)
+            
+        } else {
+            ranges3$x <- NULL
+            ranges3$y <- NULL
+        }
+    })
+
     
     
        
