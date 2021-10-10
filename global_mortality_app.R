@@ -18,7 +18,8 @@ mortality_tbl_long <- mortality_tbl %>%
 
 mortality_tbl_long <- mortality_tbl_long %>% 
     mutate(cause = str_extract(mortality_tbl_long$cause, "[^(%)]+")) %>% 
-    mutate(cause = cause %>% str_trim())
+    mutate(cause = cause %>% str_trim()) %>% 
+    mutate(proportion = proportion / 100)
 
 
 
@@ -179,7 +180,7 @@ server <- function(input, output) {
         mortality_tbl_long %>% 
             
             filter(country %in% countries) %>%
-            filter(cause == cause_of_death) %>% 
+            filter(cause == cause_of_death) %>%
             
             ggplot(aes(x = year, y = proportion)) +
             
@@ -187,21 +188,24 @@ server <- function(input, output) {
             
             facet_wrap(~ country, ncol = 4) +
             
-            theme_tq() +
+            theme_light() +
             theme(
                 panel.grid.major = element_blank(),
-                panel.grid.minor = element_blank()) +
-            theme(strip.background = element_rect(fill = "#cfd8e6")) +
-            theme(strip.text = element_text(colour = "grey30", size = 13)) +
+                panel.grid.minor = element_blank(),
+                axis.title       = element_text(color = "grey30"),
+                strip.background = element_rect(fill = "#cfd8e6"),
+                strip.text       = element_text(colour = "grey30", size = 13)
+                ) +
             coord_cartesian(ylim = c(0, NA)) +
             labs(
-                title    = "Small Multiples Plot", 
-                subtitle = "Between-country comparisons", 
+                title    = "Comparison Between Countries - Small Multiples Plot", 
+                subtitle = input$cause, 
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
             theme(plot.title    = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15)) +
-            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015))
+                  plot.subtitle = element_text(size = 15, face = "bold")) +
+            scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
+            scale_y_continuous(labels = scales::percent_format())
         
     }
     
@@ -230,21 +234,23 @@ server <- function(input, output) {
             
             geom_line() +
             gghighlight(country %in% countries,
-                        unhighlighted_params = list(size = 1, colour = alpha("lightgrey", 0.18))) +
+                        unhighlighted_params = list(size = 1, colour = alpha("lightgrey", 0.2))) +
             
-            theme_tq() +
+            theme_light() +
             theme(panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank()) +
+                  panel.grid.minor = element_blank(),
+                  axis.title       = element_text(color = "grey30"),
+                  plot.title    = element_text(size = 20, face = "bold"),
+                  plot.subtitle = element_text(size = 15, face = "bold")
+                  ) +
             labs(
                 title    = "Comparison Between Countries vs. Rest of The World by Cause",
                 subtitle = input$cause_2,
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
-            theme(
-                plot.title    = element_text(size = 20, face = "bold"),
-                plot.subtitle = element_text(size = 15, face = "bold")) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
-            scale_color_viridis_d()
+            scale_y_continuous(labels = scales::percent_format()) +
+            scale_color_brewer(palette = "Dark2")
         
     }
     
@@ -269,22 +275,23 @@ server <- function(input, output) {
             
             geom_line(aes(group = cause, color = cause)) +
             gghighlight(cause %in% cause_of_death,
-                        unhighlighted_params = list(size = 1, colour = alpha("grey", 0.2))) +
+                        unhighlighted_params = list(size = 1, colour = alpha("grey", 0.24))) +
             
-            theme_tq() +
+            theme_light() +
             theme(panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank()) +
+                  panel.grid.minor = element_blank(),
+                  axis.title       = element_text(color = "grey30"),
+                  plot.title    = element_text(size = 20, face = "bold"),
+                  plot.subtitle = element_text(size = 15, face = "bold")
+                  ) +
             labs(
                 title    = "Comparison Between Selected Causes vs. The Rest of The Causes by Country",
                 subtitle = input$country_3,
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
-            theme(
-                plot.title    = element_text(size = 20, face = "bold"),
-                plot.subtitle = element_text(size = 15, face = "bold")) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
-            
-            scale_color_viridis_d()
+            scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+            scale_color_brewer(palette = "Dark2")
         
     }
     
