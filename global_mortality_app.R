@@ -7,7 +7,9 @@ library(shinythemes)
 library(tidyquant)
 library(gghighlight)
 
-mortality_tbl <- read_excel("C:/Users/gabor_szabo/OneDrive - Edwards Lifesciences/Documents/R/UseR group contest/global_mortality.xlsx")
+
+mortality_tbl <- readr::read_csv("https://raw.githubusercontent.com/gaborszabo11/Global-Mortality-Data-Visualization/main/global_mortality.csv")
+
 
 # Transform tibble (pivot longer, str_extract and str_trim)
 mortality_tbl_long <- mortality_tbl %>% 
