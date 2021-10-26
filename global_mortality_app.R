@@ -1,12 +1,10 @@
 library(shiny)
 library(tidyverse)
-library(readxl)
-library(writexl)
-library(openxlsx)
 library(shinythemes)
-library(tidyquant)
 library(gghighlight)
 
+
+# 1. LOAD AND CLEAN DATASET ----
 
 mortality_tbl <- readr::read_csv("https://raw.githubusercontent.com/gaborszabo11/Global-Mortality-Data-Visualization/main/global_mortality.csv")
 
@@ -36,8 +34,10 @@ causes <- mortality_tbl_long %>%
     pull()
 
 
-# UI
-ui <- navbarPage("Global Mortality App",
+
+
+# 2. UI ----
+ui <- navbarPage("Global Mortality Data App",
     
     theme = shinytheme("sandstone"),
     
@@ -53,7 +53,7 @@ ui <- navbarPage("Global Mortality App",
                sidebarPanel(width = 6,
                             
                             selectInput(inputId = "country",
-                                     label      = "Select countries", 
+                                     label      = "Select countries/regions", 
                                      choices    = countries, 
                                      selected   = c("United States", "Canada", "Hungary", "Italy", "Japan", "China"), 
                                      multiple   = TRUE, 
@@ -98,7 +98,7 @@ ui <- navbarPage("Global Mortality App",
                         sidebarPanel(width = 6,
                                      
                                      selectInput(inputId = "country_2",
-                                                 label      = "Select countries", 
+                                                 label      = "Select countries/regions", 
                                                  choices    = countries, 
                                                  selected   = c("United States", "Canada", "Hungary", "Italy", "Japan", "China"), 
                                                  multiple   = TRUE, 
@@ -201,19 +201,7 @@ ui <- navbarPage("Global Mortality App",
                 column(5,
                         hr(),
                         sidebarPanel(width = 6,
-                                                  
-                                                  
-                                    sliderInput(inputId = "year_range", 
-                                                label   = "Date range:",
-                                                min     = 1990, 
-                                                max     = 2016,
-                                                value   = c(1990, 2016)
-                                                )
-                                    ),
-                                    
-                       sidebarPanel(width = 6,
-                                    
-                                    selectInput(inputId = "country_4",
+                                    selectInput(inputId    = "country_4",
                                                 label      = "Select country", 
                                                 choices    = countries, 
                                                 selected   = c("United States"), 
@@ -221,8 +209,19 @@ ui <- navbarPage("Global Mortality App",
                                                 selectize  = FALSE,
                                                 size = 30
                                                 )
-                                    )
+                                    ),
                        
+                       
+                        sidebarPanel(width = 6,
+                                    sliderInput(inputId = "year_range", 
+                                                label   = "Date range:",
+                                                min     = 1990, 
+                                                max     = 2016,
+                                                value   = c(1990, 2016),
+                                                sep     = ""
+                                                )
+                                    )
+                                    
                 ),
              
                 # second column
@@ -240,7 +239,10 @@ ui <- navbarPage("Global Mortality App",
     )
 )
 
-# SERVER
+
+
+
+# 3. SERVER ----
 server <- function(input, output) {
     
 
@@ -268,7 +270,7 @@ server <- function(input, output) {
                 ) +
             coord_cartesian(ylim = c(0, NA)) +
             labs(
-                title    = "Comparison Between Countries - Small Multiples Plot", 
+                title    = "Comparison Between Countries/Regions - Small Multiples Plot", 
                 subtitle = input$cause, 
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)") +
@@ -320,7 +322,7 @@ server <- function(input, output) {
                   plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
             ) +
             labs(
-                title    = "Comparison Between Countries vs. Rest of The World by Cause",
+                title    = "Comparison Between Countries/Regions vs. Rest of The World by Cause",
                 subtitle = input$cause_2,
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)",
@@ -411,7 +413,7 @@ server <- function(input, output) {
                   plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
             ) +
             labs(
-                title    = "Comparison Between Selected Causes vs. Rest of The Causes by Country",
+                title    = "Comparison Between Selected Causes vs. Rest of The Causes by Country/Region",
                 subtitle = input$country_3,
                 x        = "Year", 
                 y        = "Proportion (% of overall deaths)",
@@ -511,8 +513,11 @@ server <- function(input, output) {
                   plot.subtitle      = element_text(size = 15, face = "bold", color = "grey30")
             ) +
             labs(
-                title    = "Pareto Chart of Causes by Country",
-                subtitle = input$country_4,
+                title    = "Pareto Chart of Causes by Country/Region",
+                subtitle = case_when(
+                    range(input$year_range)[1] == range(input$year_range)[2] ~ str_glue("{input$country_4} ({range(input$year_range)[1]})"),
+                    TRUE ~ str_glue("{input$country_4} ({range(input$year_range)[1]}-{range(input$year_range)[2]})")
+                ),
                 x        = "Cause", 
                 y        = "Proportion (% of overall deaths)") +
             guides(fill = guide_legend(reverse = TRUE)) +
@@ -532,19 +537,9 @@ server <- function(input, output) {
     
 
 
-# reactive function - CAN DELETE
-selected_countries <- reactive({
-    
-    req(input$countries)
-    
-    selected_countries <- input$countries
-    
-})
-  
-    
 
 
-# Run the application 
+# 4. RUN APPLICATION ----
 shinyApp(ui = ui, server = server)
 
 
