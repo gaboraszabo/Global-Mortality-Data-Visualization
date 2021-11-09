@@ -254,6 +254,8 @@ server <- function(input, output) {
             filter(country %in% countries) %>%
             filter(cause == cause_of_death) %>%
             
+            mutate(country = as_factor(country) %>% fct_reorder(proportion, .fun = mean, .desc = TRUE)) %>% 
+            
             ggplot(aes(x = year, y = proportion)) +
             
             geom_line(aes(group = cause), color ="grey", size = 0.9) +
