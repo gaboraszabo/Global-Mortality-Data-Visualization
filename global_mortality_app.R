@@ -497,7 +497,7 @@ server <- function(input, output) {
                                         TRUE ~ "the rest") %>% as_factor() %>% fct_reorder(desc(cause_fct_num))) %>% 
             
             ggplot(aes(cause, proportion)) +
-            geom_col(aes( fill = category)) +
+            geom_col(aes(fill = category)) +
             geom_text(aes(label = proportion %>% scales::percent(accuracy = 0.01)),
                       position = position_dodge(width = 0.2),
                       hjust = -0.2, 
