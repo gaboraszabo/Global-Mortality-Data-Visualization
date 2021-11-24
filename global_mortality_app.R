@@ -2,6 +2,7 @@ library(shiny)
 library(tidyverse)
 library(shinythemes)
 library(gghighlight)
+library(plotly)
 
 
 # 1. LOAD AND CLEAN DATASET ----
@@ -22,7 +23,6 @@ mortality_tbl_long <- mortality_tbl_long %>%
     mutate(proportion = proportion / 100)
 
 
-
 # Countries vector
 countries <- mortality_tbl_long %>% 
     distinct(country) %>% 
@@ -36,14 +36,60 @@ causes <- mortality_tbl_long %>%
 
 
 
+
+countries_continents_tbl <- readr::read_csv("https://raw.githubusercontent.com/gaborszabo11/Global-Mortality-Data-Visualization/main/countries_continents.csv")
+
+
+mortality_tbl_long_continents <- mortality_tbl_long %>% 
+    
+    left_join(countries_continents_tbl, by = "country")
+
+
+
+mortality_tbl_long_continents <- mortality_tbl_long_continents %>%
+    mutate(continent = case_when(
+        mortality_tbl_long_continents$country == "United States" ~ "North America",
+        mortality_tbl_long_continents$country == "Bolivia" ~ "South America",
+        mortality_tbl_long_continents$country == "Brunei" ~ "Asia",
+        mortality_tbl_long_continents$country == "Cape Verde" ~ "Africa",
+        mortality_tbl_long_continents$country == "Cote d'Ivoire" ~ "Africa",
+        mortality_tbl_long_continents$country == "Czech Republic" ~ "Europe",
+        mortality_tbl_long_continents$country == "Democratic Republic of Congo" ~ "Africa",
+        mortality_tbl_long_continents$country == "England" ~ "Europe",
+        mortality_tbl_long_continents$country == "Iran" ~ "Asia",
+        mortality_tbl_long_continents$country == "Laos" ~ "Asia",
+        mortality_tbl_long_continents$country == "Macedonia" ~ "Europe",
+        mortality_tbl_long_continents$country == "Micronesia (country)" ~ "Oceania",
+        mortality_tbl_long_continents$country == "Moldova" ~ "Europe",
+        mortality_tbl_long_continents$country == "North Korea" ~ "Asia",
+        mortality_tbl_long_continents$country == "Northern Ireland" ~ "Europe",
+        mortality_tbl_long_continents$country == "Palestine" ~ "Asia",
+        mortality_tbl_long_continents$country == "Russia" ~ "Asia",
+        mortality_tbl_long_continents$country == "Scotland" ~ "Europe",
+        mortality_tbl_long_continents$country == "South Korea" ~ "Asia",
+        mortality_tbl_long_continents$country == "Swaziland" ~ "Africa",
+        mortality_tbl_long_continents$country == "Syria" ~ "Asia",
+        mortality_tbl_long_continents$country == "Taiwan" ~ "Asia",
+        mortality_tbl_long_continents$country == "Tanzania" ~ "Africa",
+        mortality_tbl_long_continents$country == "Timor" ~ "Asia",
+        mortality_tbl_long_continents$country == "United Kingdom" ~ "Europe",
+        mortality_tbl_long_continents$country == "Venezuela" ~ "South America",
+        mortality_tbl_long_continents$country == "Vietnam" ~ "Asia",
+        mortality_tbl_long_continents$country == "Wales" ~ "Europe",
+        TRUE                                                     ~ mortality_tbl_long_continents$continent)
+    )
+
+
+
+
+
 # 2. UI ----
 ui <- navbarPage("Global Mortality Data App",
     
-    theme = shinytheme("sandstone"),
+    theme = shinytheme("cosmo"),
     
     # Tab 1 ----
-    tabPanel("Between countries by cause",
-    # Application title
+    tabPanel("B/w countries by cause",
 
     fluidRow(
         
@@ -87,8 +133,7 @@ ui <- navbarPage("Global Mortality Data App",
 ),
 
     # Tab 2 ----
-    tabPanel("Between countries vs. rest of the world by cause",
-             # Application title
+    tabPanel("B/w countries vs. rest of the world by cause",
              
              fluidRow(
                  
@@ -140,8 +185,7 @@ ui <- navbarPage("Global Mortality Data App",
 
 
     # Tab 3 ----
-    tabPanel("Between causes vs. rest of the causes by country",
-             # Application title
+    tabPanel("B/w causes vs. rest of the causes by country",
              
              fluidRow(
                  
@@ -193,7 +237,6 @@ ui <- navbarPage("Global Mortality Data App",
 
     # Tab 4 ----
     tabPanel("Pareto of causes by country",
-            # Application title
          
             fluidRow(
              
@@ -236,8 +279,48 @@ ui <- navbarPage("Global Mortality Data App",
                         )
                 
         )
-    )
+    ),
+
+    # Tab 5 ----
+    tabPanel("Relative change by country by continent",
+    
+         
+            fluidRow(
+                
+                
+             
+                # first column
+                column(5,
+                        hr(),
+                        sidebarPanel(width = 6,
+                                    selectInput(inputId    = "cause_4",
+                                             label      = "Select cause", 
+                                             choices    = causes, 
+                                             selected   = c("Cancers"), 
+                                             multiple   = FALSE, 
+                                             selectize  = FALSE,
+                                             size = 30
+                                 )
+                    )
+                    
+             ),
+             
+                # second column
+                column(7, 
+                        offset = 0,
+             
+                        # plot
+                        plotlyOutput("relative_change_plot",
+                            width  = "800px",
+                            height = "650px")
+                )
+             
+            )
+
+             
+         )
 )
+
 
 
 
@@ -266,18 +349,19 @@ server <- function(input, output) {
             theme(
                 panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank(),
-                axis.title       = element_text(color = "grey30"),
+                axis.title       = element_text(color = "grey30", size = 10),
+                axis.text        = element_text(color = "grey30", size = 10),
                 strip.background = element_rect(fill = "#cfd8e6"),
-                strip.text       = element_text(colour = "grey30", size = 13)
+                strip.text       = element_text(colour = "grey30", size = 13),
+                plot.title    = element_text(size = 20, face = "bold", color = "grey30"),
+                plot.subtitle = element_text(size = 15, face = "bold", color = "grey30")
                 ) +
             coord_cartesian(ylim = c(0, NA)) +
             labs(
                 title    = "Comparison Between Countries/Regions - Small Multiples Plot", 
                 subtitle = input$cause, 
-                x        = "Year", 
+                x        = "", 
                 y        = "Proportion (% of overall deaths)") +
-            theme(plot.title    = element_text(size = 20, face = "bold"),
-                  plot.subtitle = element_text(size = 15, face = "bold")) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
             scale_y_continuous(labels = scales::percent_format())
         
@@ -318,15 +402,16 @@ server <- function(input, output) {
             theme_light() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
-                  axis.title       = element_text(color = "grey30"),
-                  plot.title       = element_text(size = 20, face = "bold"),
-                  plot.subtitle    = element_text(size = 15, face = "bold"),
+                  axis.title       = element_text(color = "grey30", size = 10),
+                  axis.text        = element_text(color = "grey30", size = 10),
+                  plot.title       = element_text(size = 20, face = "bold", color = "grey30"),
+                  plot.subtitle    = element_text(size = 15, face = "bold", color = "grey30"),
                   plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
             ) +
             labs(
                 title    = "Comparison Between Countries/Regions vs. Rest of The World by Cause",
                 subtitle = input$cause_2,
-                x        = "Year", 
+                x        = "", 
                 y        = "Proportion (% of overall deaths)",
                 caption = "Select a specific part of the upper plot to zoom in on relevant details and have it displayed in the lower plot") +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
@@ -355,7 +440,7 @@ server <- function(input, output) {
                   axis.title       = element_text(color = "grey30")
             ) +
             labs(
-                x        = "Year", 
+                x        = "", 
                 y        = "Proportion (% of overall deaths)") +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
             scale_y_continuous(labels = scales::percent_format()) +
@@ -409,15 +494,16 @@ server <- function(input, output) {
             theme_light() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
-                  axis.title       = element_text(color = "grey30"),
-                  plot.title       = element_text(size = 20, face = "bold"),
-                  plot.subtitle    = element_text(size = 15, face = "bold"),
+                  axis.title       = element_text(color = "grey30", size = 10),
+                  axis.text        = element_text(color = "grey30", size = 10),
+                  plot.title       = element_text(size = 20, face = "bold", color = "grey30"),
+                  plot.subtitle    = element_text(size = 15, face = "bold", color = "grey30"),
                   plot.caption     = element_text(color = "grey30", size = 12, hjust = 0.5)
             ) +
             labs(
                 title    = "Comparison Between Selected Causes vs. Rest of The Causes by Country/Region",
                 subtitle = input$country_3,
-                x        = "Year", 
+                x        = "", 
                 y        = "Proportion (% of overall deaths)",
                 caption  = "Select a specific part of the upper plot to zoom in on relevant details and have it displayed in the lower plot") +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
@@ -446,7 +532,7 @@ server <- function(input, output) {
                   axis.title       = element_text(color = "grey30")
             ) +
             labs(
-                x        = "Year", 
+                x        = "", 
                 y        = "Proportion (% of overall deaths)"
                 ) +
             scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015)) +
@@ -509,10 +595,12 @@ server <- function(input, output) {
             theme_light() +
             theme(panel.grid.major.y = element_blank(),
                   panel.grid.minor   = element_blank(),
-                  axis.title         = element_text(color = "grey30"),
-                  axis.text          = element_text(color = "grey30", size = 11),
+                  axis.title         = element_text(color = "grey30", size = 10),
+                  axis.text          = element_text(color = "grey30", size = 10),
                   plot.title         = element_text(size = 20, face = "bold", color = "grey30"),
-                  plot.subtitle      = element_text(size = 15, face = "bold", color = "grey30")
+                  plot.subtitle      = element_text(size = 15, face = "bold", color = "grey30"),
+                  legend.text        = element_text(size = 11, color = "grey30"),
+                  legend.title       = element_text(size = 13, color = "grey30")
             ) +
             labs(
                 title    = "Pareto Chart of Causes by Country/Region",
@@ -533,10 +621,66 @@ server <- function(input, output) {
         
         
     })
-       
-    }
 
     
+    
+# Relative change plot ----
+    
+    output$relative_change_plot <- renderPlotly({
+        
+        plot <- mortality_tbl_long_continents %>%
+            
+            filter(!is.na(continent)) %>% 
+            
+            mutate(country   = as_factor(country)) %>%
+            mutate(continent = as_factor(continent)) %>% 
+            filter(year == 1990 | year == 2016) %>% 
+            
+            group_by(country, cause) %>% 
+            arrange(country, cause) %>% 
+            
+            mutate(lag        = lag(proportion)) %>% 
+            mutate(change     = (proportion / lag) - 1) %>% 
+            mutate(change_pct = change %>% scales::percent(accuracy = 0.01)) %>%
+            
+            ungroup() %>% 
+            
+            filter(!is.na(lag)) %>% 
+            
+            filter(cause == input$cause_4) %>% 
+            
+            select(country, year, cause, proportion, continent, change) %>% 
+            
+            mutate(text_label = str_glue("{country}
+                                 {change %>% scales::percent(accuracy = 0.1)}")) %>% 
+            
+            ggplot(aes(continent, change)) +
+            geom_jitter(aes(text = text_label), color = "#08519C", width = 0.15, size = 1, alpha = 0.75) +
+            scale_y_continuous(labels = scales::percent) +
+            theme_light() +
+            theme(
+                panel.grid.major.x = element_blank(),
+                panel.grid.minor   = element_blank(),
+                axis.title         = element_text(color = "grey30", size = 10),
+                axis.text          = element_text(color = "grey30", size = 10)) +
+            labs(
+                title = str_glue("Relative change in proportion of deaths for {input$cause_4} between 1990-2016"),
+                x = "",
+                y = "Relative change"
+            )
+        
+        
+        ggplotly(plot, tooltip = "text") %>% 
+            layout(margin = list(t = 25))
+        
+        
+    })
+    
+    
+    }
+
+
+   
 
 
 
